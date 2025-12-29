@@ -1,11 +1,30 @@
-from protopy.basic_pb2 import Root, Header, Footer, DocumentPath, InnerPath, Field, Value, GeoPoint
 import json
+from protopy.basic_pb2 import Root, Field
+
+
+class Encoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Document):
+            return o.__dict__
+        if isinstance(o, Timestamp):
+            return o.__dict__
+        if isinstance(o, GeoPoint):
+            return o.__dict__
+        if isinstance(o, Reference):
+            return f"/{o.collection}/{o.id}"
+        return super().default(o)
+
 
 class Document:
-    def __init__(self, collection, id):
+    def __init__(self, collection, doc_id):
         self.collection = collection
-        self.id = id
+        self.id = doc_id
         self.fields = {}
+
+    @property
+    def path(self):
+        return f"/{self.collection}/{self.id}"
+
 
 class GeoPoint:
     def __init__(self, latitude, longitude):
@@ -15,30 +34,36 @@ class GeoPoint:
     def __repr__(self):
         return f"GeoPoint(latitude={self.latitude}, longitude={self.longitude})"
 
+
 class Reference:
-    def __init__(self, project, collection, id):
+    def __init__(self, project, collection, doc_id):
         self.project = project
         self.collection = collection
-        self.id = id
+        self.id = doc_id
 
     def __repr__(self):
         return f"Reference(project={self.project}, collection={self.collection}, id={self.id})"
+
 
 class Timestamp:
     def __init__(self, seconds, nanoseconds):
         self.seconds = seconds
         self.nanoseconds = nanoseconds
+
     def __repr__(self):
         return f"Timestamp(seconds={self.seconds}, nanoseconds={self.nanoseconds})"
 
+
 def main():
-    with open("out_2.bin", "rb") as f:
+    with open("documents/doc_0.bin", "rb") as f:
         data = f.read()
     root = Root()
     root.ParseFromString(data)
 
     document = process_root(root)
     print(document.__dict__)
+    print(json.dumps(document, indent=2, cls=Encoder))
+
 
 def process_root(root: Root) -> Document:
     document = Document(root.header.path.documentpath.collection, root.header.path.documentpath.document_id)
@@ -51,13 +76,14 @@ def process_root(root: Root) -> Document:
             document.fields[field.name] = f
     return document
 
+
 def parse_field(field: Field) -> any:
     print(field)
     print(field.value)
     print(field.value.boolean_value)
     if field.value.HasField("integer_value"):
         if field.type_indicator == 7:
-            return Timestamp(field.value.integer_value//1000000, 1000*field.value.integer_value%1000000)
+            return Timestamp(field.value.integer_value // 1000000, 1000 * field.value.integer_value % 1000000)
         return field.value.integer_value
     elif field.value.HasField("boolean_value"):
         print("BOOL", field.value.boolean_value)
@@ -70,14 +96,15 @@ def parse_field(field: Field) -> any:
         return Reference(field.value.reference_value.project, field.value.reference_value.path.collection, field.value.reference_value.path.document_id)
     elif field.value.HasField("bytes_value"):
         if field.type_indicator == 19:
-            map = Root()
-            map.ParseFromString(field.value.bytes_value)
-            doc = process_root(map)
+            mapField = Root()
+            mapField.ParseFromString(field.value.bytes_value)
+            doc = process_root(mapField)
             return doc.fields
         else:
             return field.value.bytes_value.decode("utf-8")
     else:
         print("UNK", field)
+
 
 if __name__ == "__main__":
     main()
