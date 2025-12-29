@@ -1,0 +1,20 @@
+[tool.poetry]
+package-mode = false
+
+[project]
+name = "firestore-backup-extractor"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "William OLLIVIER",email = "william@trykiroku.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "kaitaistruct (>=0.11,<0.12)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

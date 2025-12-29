@@ -1,0 +1,62 @@
+syntax = "proto2";
+
+message Root {
+    required Header header = 13;
+    required InnerPath inner_path = 14;
+    repeated Field fields = 15;
+    required Footer footer = 16;
+}
+
+message Header {
+    required string project = 13;
+    required Footer path = 14;
+}
+
+message Footer {
+    required group DocumentPath = 1 {
+        required string collection = 2;
+        required string document_id = 4;
+    }
+}
+
+message DocumentPath {
+    required string collection = 2;
+    required string document_id = 4;
+}
+
+message InnerPath {
+    repeated string segments = 15;
+    required string final_segment = 17;
+}
+
+message Field {
+    optional int32 type_indicator = 1;  // 7: timestamp, 19: map, 9: geopoint
+    required string name = 3;
+    required int32 array_indicator = 4; // 0=single value, 1=array element
+    required Value value = 5;
+}
+
+message Value {
+    oneof value {
+        int64 integer_value = 1;
+        bool boolean_value = 2;
+        bytes bytes_value = 3;
+        double double_value = 4;
+        group Geo_Point_value = 5 {
+            required double latitude = 6;
+            required double longitude = 7;
+        }
+        group Reference_value = 12 {
+            required string project = 13;
+            required group Path = 14 {
+                required string collection = 15;
+                required string document_id = 17;
+            }
+        }
+    }
+}
+
+message GeoPoint {
+        required double latitude = 6;
+        required double longitude = 7;
+}
